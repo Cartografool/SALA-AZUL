@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SALA AZUL</title>
+    <style>
+      @import url("https://fonts.googleapis.com/css2?family=VT323&display=swap");
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        background: url("background.png"),
+          linear-gradient(to bottom, #000000, #0a0003);
+        font-family: "VT323", monospace;
+        color: #00fcff;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        overflow: hidden;
+      }
+      .crt-container {
+        position: relative;
+        width: 800px;
+        height: 600px;
+      }
+      .crt {
+        width: 100%;
+        height: 100%;
+        background: #000;
+        border: 4px solid #00c5c9;
+        box-shadow: 0 0 20px #00c5c9, 0 0 40px rgba(0, 255, 255, 0.3);
+        border-radius: 10px;
+        overflow: hidden;
+        position: relative;
+      }
+      .scanlines,
+      .flicker,
+      .vignette {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        z-index: 2;
+      }
+      .scanlines {
+        background: linear-gradient(
+          to bottom,
+          rgba(0, 255, 255, 0.03) 0%,
+          rgba(0, 255, 255, 0.1) 50%,
+          rgba(0, 247, 255, 0.03) 100%
+        );
+        background-size: 100% 4px;
+      }
+      .flicker {
+        background: rgba(0, 0, 0, 0.05);
+        animation: flicker 0.3s infinite;
+      }
+      .vignette {
+        box-shadow: inset 0 0 100px rgba(0, 0, 0, 0.7);
+      }
+      @keyframes flicker {
+        0%,
+        20%,
+        100% {
+          opacity: 0.1;
+        }
+        22% {
+          opacity: 0.3;
+        }
+        24% {
+          opacity: 0.2;
+        }
+        30% {
+          opacity: 0.6;
+        }
+        32% {
+          opacity: 0.3;
+        }
+        35% {
+          opacity: 0.7;
+        }
+      }
+      .menu {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        z-index: 3;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+      }
+      .menu h1 {
+        font-size: 69px;
+        margin-bottom: 40px;
+        text-shadow: 0 0 10px #00fcff, 0 0 20px #00c5c9;
+      }
+      .menu p {
+        font-size: 28px;
+        margin: 10px 0;
+        text-shadow: 0 0 10px #00fcff;
+      }
+      .menu-message {
+        margin-top: 20px;
+        font-size: 20px;
+        color: #00c5c9;
+        white-space: pre-line;
+        text-shadow: 0 0 10px #00c5c9;
+      }
+      .container {
+        width: 100%;
+        height: 100%;
+        padding: 25px 35px;
+        display: none;
+        flex-direction: column;
+        gap: 10px;
+        z-index: 4;
+      }
+      .title {
+        font-size: 26px;
+        text-align: center;
+        text-shadow: 0 0 10px #00c5c9;
+      }
+      .status-bar {
+        display: flex;
+        justify-content: space-between;
+        font-size: 16px;
+        text-shadow: 0 0 8px #00c5c9;
+      }
+      .image-box {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 320px;
+        margin-top: 10px;
+        position: relative;
+      }
+      .image-box img {
+        max-height: 70%;
+        max-width: 80%;
+        object-fit: contain;
+        border: 4px solid #00c5c9;
+        border-radius: 10px;
+        box-shadow: 0 0 20px #00c5c9, 0 0 40px rgba(0, 255, 255, 0.3);
+        filter: drop-shadow(0 0 6px #00c5c9) brightness(1.1) contrast(1.1);
+        transform: perspective(800px) rotateX(1deg) rotateY(-1.5deg);
+      }
+      .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url("assets/static_noise_overlay.gif");
+        background-size: cover;
+        opacity: 0.1;
+        pointer-events: none;
+        z-index: 3;
+      }
+      .message-box {
+        min-height: 70px;
+        text-align: center;
+        font-size: 18px;
+        white-space: pre-line;
+        text-shadow: 0 0 10px #00c5c9;
+        font-weight: bold;
+      }
+      .hint-box {
+        text-align: center;
+        font-size: 14px;
+        color: #8bfaff;
+        margin-top: -10px;
+        text-shadow: 0 0 6px #00c5c9;
+        min-height: 24px;
+      }
+      .input-container {
+        display: flex;
+        justify-content: center;
+        margin-top: 5px;
+      }
+      input[type="text"] {
+        width: 100%;
+        max-width: 480px;
+        background: rgba(110, 255, 255, 0.15);
+        border: 2.5px solid #6afdff;
+        border-radius: 8px;
+        padding: 12px 20px;
+        font-family: "VT323", monospace;
+        font-size: 22px;
+        color: #00fcff;
+        text-align: center;
+        box-shadow: 0 0 12px #00c5c9;
+        transition: 0.3s ease;
+        caret-color: #00fcff;
+      }
+      input[type="text"]:focus {
+        outline: none;
+        border-color: #00fcff;
+        box-shadow: 0 0 18px #00fcff;
+        background: rgba(138, 255, 255, 0.15);
+      }
+      input[disabled] {
+        background: rgba(40, 75, 80, 0.3);
+        color: #009194;
+        border-color: #009194;
+        box-shadow: none;
+        cursor: not-allowed;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="crt-container">
+      <div class="crt">
+        <div class="scanlines"></div>
+        <div class="flicker"></div>
+        <div class="vignette"></div>
+
+        <div class="menu" id="menu">
+          <h1>SALA AZUL</h1>
+          <p>1 - Iniciar</p>
+          <p>2 - Instruções</p>
+          <p class="menu-message" id="menu-message"></p>
+        </div>
+
+        <div class="container" id="game-container">
+          <h1 class="title">Digite o que você vê na imagem</h1>
+          <div class="status-bar">
+            <div id="timer">Tempo restante: 30s</div>
+            <div id="attempts">Tentativas: 3</div>
+            <div id="memory">Memória Instável: 0%</div>
+          </div>
+          <div class="image-box">
+            <img id="game-image" src="" alt="Imagem do jogo" />
+            <div class="image-overlay"></div>
+          </div>
+          <div class="message-box" id="message"></div>
+          <div class="hint-box" id="hint"></div>
+          <div class="input-container">
+            <input
+              type="text"
+              id="answer-input"
+              placeholder="Digite sua resposta..."
+            />
+          </div>
+        </div>
+
+        <!-- Áudios -->
+        <audio id="sound-enter" src="enter.wav" preload="auto"></audio>
+        <audio id="sound-correct" src="correct.wav" preload="auto"></audio>
+        <audio id="sound-wrong" src="wrong.wav" preload="auto"></audio>
+        <audio id="sound-typing" src="typing.wav" preload="auto"></audio>
+      </div>
+    </div>
+
+    <script>
+      const IMAGES_AND_ANSWERS = [
+        {
+          image: "imagens/imagem1.png",
+          hint: "A natureza parece estar morrendo.",
+          secondHint: "Repare na condição da planta.",
+          thirdHint: "A flor/planta está...?",
+          answers: [
+            "flor murcha",
+            "flor morta",
+            "flor seca",
+            "planta murcha",
+            "planta morta",
+            "planta seca",
+          ],
+        },
+        {
+          image: "imagens/imagem2.png",
+          hint: "Essa figura te lembra um brinquedo, não é?",
+          secondHint: "Falta algo no rosto dessa figura.",
+          thirdHint: "Boneco sem...",
+          answers: [
+            "sem olhos",
+            "rosto sem olhos",
+            "criança sem olhos",
+            "boneco sem olhos",
+          ],
+        },
+        {
+          image: "imagens/imagem3.png",
+          hint: "Um número... mas algo o riscou.",
+          secondHint: "Nossa, essa é fácil! Não é possível que vocês... Né?",
+          thirdHint: "GENTE É LITERALMENTE SÓ LER A PRIMEIRA DICA!",
+          answers: ["número riscado", "3 riscado", "3 riscado", "numero 3"],
+        },
+        {
+          image: "imagens/imagem4.png",
+          hint: "A chama revela mais do que deveria.",
+          secondHint:
+            "O que está bem na sua frente iluminando é a resposta. E, o quê atrás dela também!",
+          thirdHint: "Vela e...",
+          answers: [
+            "sombra atrás da vela",
+            "vela na frente da sombra",
+            "sombra e vela",
+            "vela e sombra",
+            "vela com sombra",
+            "sombra com vela",
+          ],
+        },
+        {
+          image: "imagens/imagem5.png",
+          hint: "Algo que gira. hipnotizante.",
+          secondHint:
+            "Te lembra algo relacionado a morte. Mas você não sabe o porquê.",
+          thirdHint: "UZUMAKI.",
+          answers: ["espiral", "redemoinho"],
+        },
+      ];
+
+      const TIME_PER_ANSWER = 120;
+      const MAX_ATTEMPTS = 3;
+
+      let currentIndex = 0;
+      let timeLeft = TIME_PER_ANSWER;
+      let attemptsLeft = MAX_ATTEMPTS;
+      let instability = 0;
+      let timerInterval;
+      let hintTimeout;
+
+      const menu = document.getElementById("menu");
+      const gameContainer = document.getElementById("game-container");
+      const menuMessage = document.getElementById("menu-message");
+      const timerEl = document.getElementById("timer");
+      const attemptsEl = document.getElementById("attempts");
+      const memoryEl = document.getElementById("memory");
+      const gameImageEl = document.getElementById("game-image");
+      const answerInputEl = document.getElementById("answer-input");
+      const messageEl = document.getElementById("message");
+      const hintEl = document.getElementById("hint");
+
+      const soundEnter = document.getElementById("sound-enter");
+      const soundCorrect = document.getElementById("sound-correct");
+      const soundWrong = document.getElementById("sound-wrong");
+      const soundTyping = document.getElementById("sound-typing");
+
+      let menuAtivo = true;
+      let menuSelecionado = null;
+
+      document.addEventListener("keydown", (e) => {
+        if (menuAtivo) {
+          if (e.key === "1") {
+            menuSelecionado = 1;
+            menuMessage.textContent = "Iniciando o protocolo...";
+            soundEnter.play();
+          } else if (e.key === "2") {
+            menuSelecionado = 2;
+            menuMessage.textContent =
+              "Observe a imagem e descreva o que vê.\n" +
+              "- Use palavras simples e diretas. Exemplo: (Leões e mercados; Caroço no angu; Corpo seco.)\n" +
+              "- Você terá 3 tentativas para acertar cada imagem. (Se ocorrer, a imagem seguinte aparecerá.)\n" +
+              "- Se errar demais, a memória irar corromper. (Atento a memória instável.)\n" +
+              "- A cada 10, 30 e 60 segundos, dicas serão exibidas.\n" +
+              "- Pressione ENTER após escolher uma opção no menu.";
+            soundEnter.play();
+          } else if (e.key === "Enter" && menuSelecionado !== null) {
+            menu.style.display = "none";
+            gameContainer.style.display = "flex";
+            iniciarJogo();
+            soundEnter.play();
+            menuAtivo = false;
+          }
+        }
+      });
+
+      function iniciarJogo() {
+        currentIndex = 0;
+        instability = 0;
+        mostrarImagem();
+      }
+
+      function mostrarImagem() {
+        const atual = IMAGES_AND_ANSWERS[currentIndex];
+        gameImageEl.src = atual.image;
+        messageEl.textContent = "";
+        hintEl.textContent = "";
+        answerInputEl.value = "";
+        answerInputEl.disabled = false;
+        answerInputEl.focus();
+        timeLeft = TIME_PER_ANSWER;
+        attemptsLeft = MAX_ATTEMPTS;
+        atualizarStatus();
+
+        clearInterval(timerInterval);
+        clearTimeout(hintTimeout);
+
+        timerInterval = setInterval(() => {
+          timeLeft--;
+          atualizarStatus();
+          if (timeLeft <= 0) {
+            clearInterval(timerInterval);
+            processarErro();
+          }
+        }, 1000);
+
+        // Primeira dica após 10s
+        hintTimeout = setTimeout(() => {
+          hintEl.textContent = `Dica: ${atual.hint}`;
+        }, 10000);
+
+        // Segunda dica após 30s
+        setTimeout(() => {
+          if (hintEl.textContent && atual.secondHint) {
+            hintEl.textContent += `\n${atual.secondHint}`;
+          }
+        }, 30000);
+
+        // Terceira dica após 60s
+        setTimeout(() => {
+          if (hintEl.textContent && atual.thirdHint) {
+            hintEl.textContent += `\n${atual.thirdHint}`;
+          }
+        }, 60000);
+      }
+
+      function atualizarStatus() {
+        timerEl.textContent = `Tempo restante: ${timeLeft}s`;
+        attemptsEl.textContent = `Tentativas: ${attemptsLeft}`;
+        memoryEl.textContent = `Memória Instável: ${instability}%`;
+      }
+
+      answerInputEl.addEventListener("keydown", (e) => {
+        if (/^[a-zA-Z0-9çáéíóúãõâêîôû ]$/.test(e.key)) {
+          soundTyping.currentTime = 0;
+          soundTyping.play();
+        }
+        if (e.key === "Enter") {
+          verificarResposta();
+        }
+      });
+
+      function verificarResposta() {
+        const resposta = answerInputEl.value.trim().toLowerCase();
+        const respostasAceitas = IMAGES_AND_ANSWERS[currentIndex].answers;
+
+        if (respostasAceitas.includes(resposta)) {
+          clearInterval(timerInterval);
+          clearTimeout(hintTimeout);
+          messageEl.textContent = "Resposta correta!";
+          soundCorrect.play();
+          setTimeout(proximaImagem, 1200);
+        } else {
+          const palavrasChave = respostasAceitas[0].split(" ");
+          const palavrasResposta = resposta.split(" ");
+          const palavrasCorretas = palavrasChave.filter((p) =>
+            palavrasResposta.includes(p)
+          );
+
+          if (
+            palavrasCorretas.length > 0 &&
+            palavrasCorretas.length < palavrasChave.length
+          ) {
+            messageEl.textContent = `Parcialmente correto. A palavra "${palavrasCorretas[0]}" está certa, mas falta o restante.`;
+            soundWrong.play();
+          } else {
+            messageEl.textContent = "INCORRETO! Tente novamente...";
+            soundWrong.play();
+          }
+
+          attemptsLeft--;
+          atualizarStatus();
+
+          if (attemptsLeft <= 0) {
+            clearInterval(timerInterval);
+            clearTimeout(hintTimeout);
+            processarErro();
+          } else {
+            answerInputEl.value = "";
+          }
+        }
+      }
+
+      function processarErro() {
+        instability += 33;
+        atualizarStatus();
+        soundWrong.play();
+
+        // Ações personalizadas
+        if (instability >= 99 && instability < 100) {
+          instability = 100; // Garante que finalize
+        }
+
+        if (instability === 33) {
+          messageEl.textContent = "Memória falhas foram detectadas!";
+        } else if (instability === 66) {
+          messageEl.textContent = "Lapsos graves de memória detectados!";
+        } else if (instability >= 100) {
+          encerrarJogo(false);
+          return;
+        }
+
+        setTimeout(() => {
+          proximaImagem();
+        }, 2000);
+      }
+
+      function proximaImagem() {
+        currentIndex++;
+        if (currentIndex >= IMAGES_AND_ANSWERS.length) {
+          encerrarJogo(true);
+        } else {
+          mostrarImagem();
+        }
+      }
+
+      function encerrarJogo(vitoria) {
+        answerInputEl.disabled = true;
+        clearInterval(timerInterval);
+        clearTimeout(hintTimeout);
+        messageEl.textContent = vitoria
+          ? "Você concluiu todas as imagens com sucesso!"
+          : "Memória comprometida. O protocolo falhou.";
+        hintEl.textContent = "";
+      }
+    </script>
+  </body>
+</html>
