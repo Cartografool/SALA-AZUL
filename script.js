@@ -32,7 +32,7 @@ const IMAGES_AND_ANSWERS = [
     hint: "Um número... mas algo o riscou.",
     secondHint: "Nossa, essa é fácil! Não é possível que vocês... Né?",
     thirdHint: "GENTE É LITERALMENTE SÓ LER A PRIMEIRA DICA!",
-    answers: ["número riscado", "3 riscado", "3 riscado", "numero 3"],
+    answers: ["número riscado", "3 riscado", "numero 3"],
   },
 
   {
@@ -60,7 +60,10 @@ const IMAGES_AND_ANSWERS = [
     answers: ["espiral", "redemoinho"],
   },
 ];
-
+IMAGES_AND_ANSWERS.forEach((item) => {
+  const img = new Image();
+  img.src = item.image;
+});
 const TIME_PER_ANSWER = 120;
 const MAX_ATTEMPTS = 3;
 
@@ -179,7 +182,9 @@ function mostrarImagem() {
   // Segunda dica após 30s
   secondHintTimeout = setTimeout(() => {
     if (hintEl.textContent && atual.secondHint) {
-      hintEl.textContent += `\n${atual.secondHint}`;
+      hintEl.textContent = [`Dica: ${atual.hint}`, atual.secondHint]
+        .filter(Boolean)
+        .join("\n");
     }
   }, 30000);
 
@@ -235,19 +240,30 @@ function verificarResposta() {
 
     setTimeout(proximaImagem, 1200);
   } else {
-    const palavrasChave = respostasAceitas[0].split(" ");
-
     const palavrasResposta = resposta.split(" ");
 
-    const palavrasCorretas = palavrasChave.filter((p) =>
-      palavrasResposta.includes(p),
-    );
+    let melhorMatch = [];
+    let melhorResposta = "";
+
+    respostasAceitas.forEach((respostaValida) => {
+      const palavrasChave = respostaValida.split(" ");
+
+      const palavrasCorretas = palavrasChave.filter((p) =>
+        palavrasResposta.includes(p),
+      );
+
+      if (palavrasCorretas.length > melhorMatch.length) {
+        melhorMatch = palavrasCorretas;
+        melhorResposta = respostaValida;
+      }
+    });
 
     if (
-      palavrasCorretas.length > 0 &&
-      palavrasCorretas.length < palavrasChave.length
+      melhorMatch.length > 0 &&
+      melhorMatch.length < melhorResposta.split(" ").length
     ) {
-      messageEl.textContent = `Parcialmente correto. A palavra "${palavrasCorretas[0]}" está certa, mas falta o restante.`;
+      messageEl.textContent =
+        `Parcialmente correto. ` + `A palavra "${melhorMatch[0]}" está certa.`;
 
       soundWrong.play();
     } else {
@@ -262,7 +278,9 @@ function verificarResposta() {
 
     if (attemptsLeft <= 0) {
       clearInterval(timerInterval);
-      clearTimeout(hintTimeout);
+      clearTimeout(firstHintTimeout);
+      clearTimeout(secondHintTimeout);
+      clearTimeout(thirdHintTimeout);
 
       processarErro();
     } else {
@@ -272,22 +290,28 @@ function verificarResposta() {
 }
 
 function processarErro() {
-  instability += 33;
-
-  atualizarStatus();
-
   soundWrong.play();
 
   instability += 34;
-  if (instability > 100) instability = 100;
 
-  if (instability === 33) {
-    messageEl.textContent = "Memória falhas foram detectadas!";
-  } else if (instability === 66) {
-    messageEl.textContent = "Lapsos graves de memória detectados!";
-  } else if (instability >= 100) {
+  if (instability > 100) {
+    instability = 100;
+  }
+
+  atualizarStatus();
+
+  if (instability >= 100) {
+    messageEl.textContent = "Memória comprometida. O protocolo falhou.";
+
     encerrarJogo(false);
+
     return;
+  }
+
+  if (instability >= 68) {
+    messageEl.textContent = "Lapsos graves de memória detectados!";
+  } else if (instability >= 34) {
+    messageEl.textContent = "Falhas de memória foram detectadas!";
   }
 
   setTimeout(() => {
@@ -309,7 +333,9 @@ function encerrarJogo(vitoria) {
   answerInputEl.disabled = true;
 
   clearInterval(timerInterval);
-  clearTimeout(hintTimeout);
+  clearTimeout(firstHintTimeout);
+  clearTimeout(secondHintTimeout);
+  clearTimeout(thirdHintTimeout);
 
   messageEl.textContent = vitoria
     ? "Você concluiu todas as imagens com sucesso!"
